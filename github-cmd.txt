@@ -1,0 +1,5 @@
+
+ssh -T git@github-personal                    
+git remote set-url origin git@github-personal:Maisha-Chowa/k6.git
+git remote -v
+git push -u origin main
