@@ -1,0 +1,9 @@
+# Never commit runtime secrets or browser captures.
+.env
+.env.*
+*.har
+
+# Local K6 outputs.
+results/
+*.json.gz
+*.csv
