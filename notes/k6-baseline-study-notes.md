@@ -1,7 +1,4 @@
 # Establish a k6 baseline — study notes
-
-Based on Grafana’s [Establish a performance baseline learning path](https://grafana.com/docs/learning-paths/establish-k6-baseline/), reviewed September 12, 2026. Covers the whole path linked from your page. Examples and exercises below are teaching material, not measurements of your application.
-
 ## 1. What is a baseline?
 
 A **performance baseline** records how a healthy application behaves under a specific, realistic workload. Future tests use it as a comparison point.
@@ -9,15 +6,13 @@ A **performance baseline** records how a healthy application behaves under a spe
 Record three things together:
 
 | Measurement | Question it answers | Example |
-| --- | --- | --- |
 | Latency | How quickly do requests finish? | p95 = 300 ms |
 | Throughput | How much traffic is handled? | 16 requests/second |
 | Error rate | How often do requests fail? | 0% |
 
 **p95 = 300 ms** means approximately 95% of sampled requests took 300 ms or less; about 5% took longer. **p99** is the boundary near the slowest 1%, not the average of that 1%. An average can hide a small group of very slow requests.
 
-A baseline is an observation. A threshold is an acceptance rule. An SLO is a service objective. An observed result can help choose a rule, but does not automatically establish an acceptable user experience. [Source: Baseline concepts](https://grafana.com/docs/learning-paths/establish-k6-baseline/understand-baselines/).
-
+A baseline is an observation. A threshold is an acceptance rule. An SLO is a service objective. An observed result can help choose a rule, but does not automatically establish an acceptable user experience. 
 ## 2. Choose realistic traffic
 
 A **VU**, or virtual user, independently repeats your test function. An **iteration** is one execution of that function. Your function might make one request or several.
@@ -26,13 +21,12 @@ Use three stages: increase traffic, hold a stable workload, then decrease traffi
 
 Example profile used in these notes:
 
-| Time | Active VUs | Purpose |
-| --- | --- | --- |
+| Time      | Active VUs | Purpose |
 | 0–20 seconds | 0 → 10 | Ramp up |
 | 20–140 seconds | 10 | Hold |
 | 140–160 seconds | 10 → 0 | Ramp down |
 
-Choose user counts and request patterns from actual usage. The hold should be long enough for stable measurements; a short tutorial hold is not proof of long-term stability. [Source: Load profile](https://grafana.com/docs/learning-paths/establish-k6-baseline/design-load-profile/).
+Choose user counts and request patterns from actual usage. The hold should be long enough for stable measurements; a short tutorial hold is not proof of long-term stability. 
 
 **Worked reasoning:** With one sequential request taking 0.25 seconds plus a 1-second pause, one iteration takes roughly 1.25 seconds. Ten VUs would generate roughly `10 / 1.25 = 8 RPS`, ignoring other overhead. Thus, 10 VUs does not mean 10 RPS. If responses slow down, these VUs complete fewer iterations.
 
@@ -207,3 +201,54 @@ Without `--local-execution`, `k6 cloud run` executes on Cloud infrastructure. A 
 4. **p95 increased from 300 to 360 ms. What is the change?** `(360 - 300) / 300 × 100 = 20%` slower. Passing a 400 ms threshold does not erase that regression.
 5. **Can I compare Dev with production directly?** Only with explicit awareness of differences in resources, data, traffic, and generator location; they are different test conditions.
 6. **Do a few smoke-test requests establish a baseline?** No; they help verify configuration, but do not establish stable performance under realistic load.
+
+
+**1. Do you need a baseline for every API?**
+
+No—you don’t need to start with every endpoint. I would prioritize:
+
+- **Frequently used APIs:** login, product listing, search.
+- **Business-critical APIs:** checkout, payment, order creation.
+- **Expensive or historically slow APIs:** reports, large database queries.
+- **Recently changed APIs:** where you need to detect performance regressions.
+
+Test realistic user flows too—for example, login → search → add to cart → checkout. Separate endpoint tests help diagnose problems; mixed flows show how APIs behave while sharing resources.
+
+**Keep results per endpoint**, even when testing several together. An overall p95 can hide a slow endpoint that receives relatively few requests. You don’t need a separate script for each API; k6 supports thresholds on tagged requests. [k6 thresholds documentation](https://grafana.com/docs/k6/latest/using-k6/thresholds/)
+
+**2. Where do threshold values come from?**
+
+**k6 doesn’t choose these values—you define what performance is acceptable.** The `400 ms` and `1%` in your notes are examples, not standard values for all applications.
+
+Use these sources:
+
+| Source | What to look for |
+|---|---|
+| Performance requirements or SLA | Documented response-time and reliability commitments |
+| Team’s SLOs—service-level objectives | Targets agreed with product, backend, and operations teams |
+| Production monitoring | Current latency, failure rates, and normal traffic levels |
+| Repeated baseline tests | Stable measurements to help propose limits when requirements are missing |
+
+Thresholds translate those expectations into test pass/fail rules. [k6 thresholds documentation](https://grafana.com/docs/k6/latest/using-k6/thresholds/)
+
+For example, suppose repeated healthy tests show **p95 around 300 ms**:
+
+- The agreed requirement is **p95 below 500 ms**.
+- You could enforce `p(95)<500` to check that requirement.
+- You might also choose a tighter **390 ms regression limit**, using 30% headroom, if normal variation supports it.
+
+But if the requirement is **below 250 ms**, your 300 ms baseline already misses the target. Raising the threshold wouldn’t solve the performance issue.
+
+For the values in your script:
+
+```javascript
+thresholds: {
+  http_req_duration: ['p(95)<400'], // Chosen latency limit: 400 ms
+  http_req_failed: ['rate<0.01'],   // Chosen failure allowance: below 1%
+  checks: ['rate==1'],             // Require every check to pass
+}
+```
+
+Choose the error allowance separately from latency. Observing failures in a baseline does not automatically make them acceptable.
+
+For your practice, run with thresholds disabled first, repeat under the same conditions, and record results. Then propose limits and confirm them with your team. **A baseline answers “How does it perform?” A threshold answers “Is that acceptable?”**

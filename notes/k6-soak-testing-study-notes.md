@@ -1,8 +1,5 @@
 # Soak testing with k6 — study notes
 
-Based on Grafana’s [Soak testing learning path](https://grafana.com/docs/learning-paths/k6-soak-testing/), reviewed September 12, 2026. Covers all six practical milestones with an adapted script, worked calculations, and a recording template. Example values are not measurements of your application.
-
-Related notes: [Baseline](k6-baseline-study-notes.md) · [System limits](k6-system-limits-study-notes.md) · [Spike testing](k6-spike-testing-study-notes.md).
 
 ## 1. What is a soak test?
 
@@ -15,7 +12,7 @@ A **soak test**, also called endurance testing, keeps realistic, moderate traffi
 | Spike | How does the service respond to and recover from a sudden burst? |
 | Soak | Does the service remain healthy when normal traffic continues? |
 
-The key change from average-load testing is duration. The learning path uses a 30-minute hold; real endurance investigations often need several hours or longer. A healthy short run cannot establish stability over a longer period. [Source: Path overview](https://grafana.com/docs/learning-paths/k6-soak-testing/).
+The key change from average-load testing is duration. The learning path uses a 30-minute hold; real endurance investigations often need several hours or longer. A healthy short run cannot establish stability over a longer period. 
 
 ## 2. What problems can time reveal?
 
@@ -40,7 +37,7 @@ VU target
           ramp up                                  ramp down
 ```
 
-Start with the learning-duration run to verify the workflow, then choose a duration that can expose the suspected failure mechanism. Match production-relevant behavior, including background work and resource usage. [Sources: Profile design](https://grafana.com/docs/learning-paths/k6-soak-testing/design-soak-profile/), [Soak test guide](https://grafana.com/docs/k6/latest/testing-guides/test-types/soak-testing/).
+Start with the learning-duration run to verify the workflow, then choose a duration that can expose the suspected failure mechanism. Match production-relevant behavior, including background work and resource usage. 
 
 Practical example: a suspected 40 MB/hour leak adds only about 3.3 MB in five minutes but 320 MB over eight hours. The shorter test may not distinguish that from normal variation.
 
@@ -154,8 +151,7 @@ Keep real tokens out of saved notes and Git. Stream a locally executed run:
 k6 cloud run --local-execution -e TARGET_URL='https://your-test-host.example/api/items' soak.js
 ```
 
-Open the printed results URL. Local execution uses your machine to generate traffic while Cloud stores and displays results. [Sources: Configure streaming](https://grafana.com/docs/learning-paths/k6-soak-testing/configure-soak-observability/), [Run the soak](https://grafana.com/docs/learning-paths/k6-soak-testing/run-soak-test/).
-
+Open the printed results URL. Local execution uses your machine to generate traffic while Cloud stores and displays results. 
 A local dashboard and HTML export are also available; see the commands in your [spike-testing notes](k6-spike-testing-study-notes.md#4-run-locally-and-view-a-timeline), substituting `soak.js` and `soak-report.html`.
 
 ## 7. Monitor comparable windows
@@ -169,13 +165,13 @@ Choose a stable reference interval after actual warm-up. Do not assume that a co
 | Falling RPS | CPU, I/O wait, request duration |
 | Abrupt failure late in the run | Disk availability, logs, resource limits |
 
-Align timestamps. Correlation helps narrow an investigation but does not establish a root cause. If no infrastructure telemetry exists, record response behavior and leave the cause unconfirmed. [Source: Correlate results](https://grafana.com/docs/learning-paths/k6-soak-testing/run-soak-test/).
+Align timestamps. Correlation helps narrow an investigation but does not establish a root cause. If no infrastructure telemetry exists, record response behavior and leave the cause unconfirmed. 
 
 ## 8. Measure onset and drift correctly
 
 Record **onset** as the first sustained change, measured from test start. The path uses failure to return to baseline within five minutes as a teaching definition of sustained change. Adapt that to your service. If the run ends before persistence can be assessed, record that limitation.
 
-Use time-window values to measure drift. Whole-run p95/p99 blend all phases; a passing aggregate does not prove every interval was healthy. If no onset exists, write “not observed,” rather than copying baseline values into an onset column. [Source: Document soak results](https://grafana.com/docs/learning-paths/k6-soak-testing/document-soak-results/).
+Use time-window values to measure drift. Whole-run p95/p99 blend all phases; a passing aggregate does not prove every interval was healthy. If no onset exists, write “not observed,” rather than copying baseline values into an onset column. 
 
 **Worked calculation — use the interval between observations:**
 
@@ -208,7 +204,7 @@ This two-point slope summarizes observed change; it is not a reliable forecast t
 
 Also record application and script versions, VUs, hold duration, routes and roles, data size, replica/scaling settings, generator location, onset time, drift rate, and completion reason. Keep suspected causes separate from confirmed findings.
 
-Use categories such as memory-related, connection-related, disk-related, or no degradation observed. When evidence is insufficient, classify the cause as unknown. A clean result means stability was observed for this workload and duration, not indefinite stability. [Source: Result categories](https://grafana.com/docs/learning-paths/k6-soak-testing/document-soak-results/).
+Use categories such as memory-related, connection-related, disk-related, or no degradation observed. When evidence is insufficient, classify the cause as unknown. A clean result means stability was observed for this workload and duration, not indefinite stability. 
 
 ## 10. Turn findings into follow-up work
 
